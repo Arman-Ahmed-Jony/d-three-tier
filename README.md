@@ -8,6 +8,8 @@ Simple todo app with three tiers:
 | Service | `service/` | Express + Mongoose |
 | Database | — | MongoDB |
 
+For **manual AWS or local VM deployment** (public frontend, private backend + DB, Nginx, PM2), see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+
