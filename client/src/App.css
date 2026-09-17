@@ -1,0 +1,82 @@
+.app {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 0.25rem 0 1.75rem;
+  color: #666;
+}
+
+.add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.add-form input {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+.add-form button,
+.delete {
+  padding: 0.65rem 1rem;
+  border: 1px solid #1a1a1a;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.delete {
+  background: transparent;
+  color: #1a1a1a;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.muted {
+  color: #777;
+}
+
+.error {
+  color: #b00020;
+}
+
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.todo-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.todo-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+
+.todo-list.done span,
+.todo-list li.done span {
+  text-decoration: line-through;
+  color: #888;
+}
