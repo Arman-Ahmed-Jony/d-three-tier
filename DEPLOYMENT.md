@@ -2,11 +2,13 @@
 
 This guide maps this repository to a **manual 3-tier deployment** assignment.
 
-| Layer | Code | Runtime | Network |
-|-------|------|---------|---------|
-| Frontend | `client/` | Nginx (static build) | **Public** |
-| Backend | `service/` | Node.js + PM2 | **Private** |
-| Database | MongoDB | `mongod` | **Private** |
+
+| Layer    | Code       | Runtime              | Network     |
+| -------- | ---------- | -------------------- | ----------- |
+| Frontend | `client/`  | Nginx (static build) | **Public**  |
+| Backend  | `service/` | Node.js + PM2        | **Private** |
+| Database | MongoDB    | `mongod`             | **Private** |
+
 
 **Rule of thumb:** the browser only talks to the frontend. The frontend’s Nginx proxies `/api` to the private backend. The backend talks to MongoDB on the private network. Backend and DB are never exposed to the public internet.
 
@@ -31,11 +33,14 @@ MongoDB           (private IP only)
 
 ---
 
+
+
 ## Checklist (both AWS and local VMs)
 
 Use this as your submission checklist.
 
 ### Architecture
+
 - [ ] Three separate hosts (FE / BE / DB)
 - [ ] Frontend reachable from outside
 - [ ] Backend has **no** public access on port 5000
@@ -43,14 +48,20 @@ Use this as your submission checklist.
 - [ ] Frontend → Backend connectivity works (via private network or VPC)
 - [ ] Backend → Database connectivity works
 
+
+
 ### App
+
 - [ ] MongoDB installed and listening on private IP only
 - [ ] Backend `.env` points `MONGODB_URI` at the DB private IP
 - [ ] Backend running under PM2
 - [ ] Frontend built with `npm run build`
 - [ ] Nginx serves `client/dist` and proxies `/api` to backend
 
+
+
 ### Security
+
 - [ ] Security groups / firewall documented (who → whom → port)
 - [ ] Only frontend allows inbound 80 (and 443 if used)
 - [ ] Backend allows inbound 5000 **only from frontend**
@@ -58,7 +69,11 @@ Use this as your submission checklist.
 
 ---
 
+
+
 ## Environment variables
+
+
 
 ### Backend (`service/.env` on the private backend host)
 
@@ -85,6 +100,8 @@ cp .env.example .env
 # then edit MONGODB_URI
 ```
 
+
+
 ### Frontend
 
 No public API URL is required if Nginx proxies `/api` (recommended). The React app already calls `/api/todos`, so the browser hits the same host as the UI.
@@ -96,6 +113,8 @@ Optional (only if you choose **not** to use an Nginx proxy): build with an absol
 No app `.env` on the DB host. Configure MongoDB bind address and firewall instead (see below).
 
 ---
+
+
 
 ## Shared app setup (on each host that needs the code)
 
@@ -124,49 +143,61 @@ sudo npm install -g pm2
 
 ---
 
+
+
 ## Path A — AWS deployment
+
+
 
 ### A1. VPC networking (manual)
 
 Create (console or CLI — values below are examples):
 
-| Resource | Example |
-|----------|---------|
-| VPC CIDR | `10.0.0.0/16` |
-| Public subnet (AZ-a) | `10.0.1.0/24` — Frontend |
-| Private subnet app (AZ-a) | `10.0.2.0/24` — Backend |
-| Private subnet db (AZ-a) | `10.0.3.0/24` — MongoDB |
-| Internet Gateway | Attach to VPC |
-| NAT Gateway | In **public** subnet (for BE outbound installs/updates) |
-| Public route table | `0.0.0.0/0` → IGW |
-| Private route table | `0.0.0.0/0` → NAT Gateway |
+
+| Resource                  | Example                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| VPC CIDR                  | `10.0.0.0/16`                                           |
+| Public subnet (AZ-a)      | `10.0.1.0/24` — Frontend                                |
+| Private subnet app (AZ-a) | `10.0.2.0/24` — Backend                                 |
+| Private subnet db (AZ-a)  | `10.0.3.0/24` — MongoDB                                 |
+| Internet Gateway          | Attach to VPC                                           |
+| NAT Gateway               | In **public** subnet (for BE outbound installs/updates) |
+| Public route table        | `0.0.0.0/0` → IGW                                       |
+| Private route table       | `0.0.0.0/0` → NAT Gateway                               |
+
 
 Associate:
 
 - Public subnet → public route table  
-- Both private subnets → private route table  
+- Both private subnets → private route table
+
+
 
 ### A2. Security groups
 
-| SG | Inbound | Source | Purpose |
-|----|---------|--------|---------|
-| `sg-frontend` | TCP 22 | Your IP | SSH |
-| `sg-frontend` | TCP 80 | `0.0.0.0/0` | HTTP |
-| `sg-frontend` | TCP 443 | `0.0.0.0/0` | HTTPS (optional) |
-| `sg-backend` | TCP 22 | `sg-frontend` or bastion | SSH via jump |
-| `sg-backend` | TCP 5000 | `sg-frontend` | API from Nginx only |
-| `sg-database` | TCP 22 | `sg-backend` or bastion | SSH via jump |
-| `sg-database` | TCP 27017 | `sg-backend` | MongoDB from BE only |
+
+| SG            | Inbound   | Source                   | Purpose              |
+| ------------- | --------- | ------------------------ | -------------------- |
+| `sg-frontend` | TCP 22    | Your IP                  | SSH                  |
+| `sg-frontend` | TCP 80    | `0.0.0.0/0`              | HTTP                 |
+| `sg-frontend` | TCP 443   | `0.0.0.0/0`              | HTTPS (optional)     |
+| `sg-backend`  | TCP 22    | `sg-frontend` or bastion | SSH via jump         |
+| `sg-backend`  | TCP 5000  | `sg-frontend`            | API from Nginx only  |
+| `sg-database` | TCP 22    | `sg-backend` or bastion  | SSH via jump         |
+| `sg-database` | TCP 27017 | `sg-backend`             | MongoDB from BE only |
+
 
 Outbound: allow all (default) so instances can use NAT for packages.
 
 ### A3. EC2 instances
 
-| Role | Subnet | Public IP | SG |
-|------|--------|-----------|-----|
-| Frontend | Public `10.0.1.0/24` | **Yes** | `sg-frontend` |
-| Backend | Private `10.0.2.0/24` | **No** | `sg-backend` |
-| Database | Private `10.0.3.0/24` | **No** | `sg-database` |
+
+| Role     | Subnet                | Public IP | SG            |
+| -------- | --------------------- | --------- | ------------- |
+| Frontend | Public `10.0.1.0/24`  | **Yes**   | `sg-frontend` |
+| Backend  | Private `10.0.2.0/24` | **No**    | `sg-backend`  |
+| Database | Private `10.0.3.0/24` | **No**    | `sg-database` |
+
 
 Use Amazon Linux 2023 or Ubuntu. Note private IPs after launch (e.g. BE `10.0.2.20`, DB `10.0.3.10`).
 
@@ -209,6 +240,8 @@ mongosh --host 10.0.3.10
 # or
 nc -vz 10.0.3.10 27017
 ```
+
+
 
 ### A5. Backend host (PM2)
 
@@ -300,16 +333,20 @@ Open `http://<FRONTEND_PUBLIC_IP>/` in a browser. Create a todo — it should hi
 
 ### A7. AWS verification
 
-| Test | Expected |
-|------|----------|
-| Browser → `http://<public-ip>/` | UI loads |
-| Browser → add/list todos | Works |
-| `curl http://<public-ip>:5000` | Fails / filtered |
-| Public scan of DB `27017` | Not reachable |
-| BE → DB `27017` | OK |
-| FE → BE `5000` | OK |
+
+| Test                            | Expected         |
+| ------------------------------- | ---------------- |
+| Browser → `http://<public-ip>/` | UI loads         |
+| Browser → add/list todos        | Works            |
+| `curl http://<public-ip>:5000`  | Fails / filtered |
+| Public scan of DB `27017`       | Not reachable    |
+| BE → DB `27017`                 | OK               |
+| FE → BE `5000`                  | OK               |
+
 
 ---
+
+
 
 ## Path B — Local VM deployment
 
@@ -317,11 +354,13 @@ Use VirtualBox, VMware, UTM, or similar. Three VMs on a **host-only / private** 
 
 ### B1. Suggested VM layout
 
-| VM | Role | Example private IP | Extra |
-|----|------|--------------------|-------|
-| `vm-fe` | Frontend + Nginx | `192.168.56.10` | Tunnel to internet |
-| `vm-be` | Backend + PM2 | `192.168.56.20` | Private only |
-| `vm-db` | MongoDB | `192.168.56.30` | Private only |
+
+| VM      | Role             | Example private IP | Extra              |
+| ------- | ---------------- | ------------------ | ------------------ |
+| `vm-fe` | Frontend + Nginx | `192.168.56.10`    | Tunnel to internet |
+| `vm-be` | Backend + PM2    | `192.168.56.20`    | Private only       |
+| `vm-db` | MongoDB          | `192.168.56.30`    | Private only       |
+
 
 Networking tips:
 
@@ -329,9 +368,11 @@ Networking tips:
 - Optionally give `vm-fe` NAT as well so it can download packages and run a tunnel.
 - Do **not** publish BE/DB ports on the host’s public interface.
 
+
+
 ### B2. Firewall (ufw example)
 
-**Frontend (`vm-fe`):**
+**Frontend (**`vm-fe`**):**
 
 ```bash
 sudo ufw allow 22/tcp
@@ -339,7 +380,7 @@ sudo ufw allow 80/tcp
 sudo ufw enable
 ```
 
-**Backend (`vm-be`):**
+**Backend (**`vm-be`**):**
 
 ```bash
 sudo ufw default deny incoming
@@ -348,7 +389,7 @@ sudo ufw allow from 192.168.56.10 to any port 5000
 sudo ufw enable
 ```
 
-**Database (`vm-db`):**
+**Database (**`vm-db`**):**
 
 ```bash
 sudo ufw default deny incoming
@@ -356,6 +397,8 @@ sudo ufw allow from 192.168.56.20 to any port 22
 sudo ufw allow from 192.168.56.20 to any port 27017
 sudo ufw enable
 ```
+
+
 
 ### B3. Database VM
 
@@ -366,6 +409,8 @@ Test from backend VM:
 ```bash
 nc -vz 192.168.56.30 27017
 ```
+
+
 
 ### B4. Backend VM
 
@@ -394,6 +439,8 @@ From frontend VM:
 curl http://192.168.56.20:5000/api/health
 ```
 
+
+
 ### B5. Frontend VM + Nginx
 
 ```bash
@@ -419,6 +466,8 @@ Serve `client/dist` on port 80. Verify on the private network:
 curl http://192.168.56.10/
 curl http://192.168.56.10/api/health
 ```
+
+
 
 ### B6. Expose only the frontend (tunnel)
 
@@ -448,28 +497,36 @@ Or create a named tunnel in the Cloudflare Zero Trust dashboard pointing to `htt
 
 ### B7. Local VM verification
 
-| Test | Expected |
-|------|----------|
-| Tunnel URL opens UI | OK |
-| Todos create/list via tunnel | OK |
+
+| Test                                               | Expected                      |
+| -------------------------------------------------- | ----------------------------- |
+| Tunnel URL opens UI                                | OK                            |
+| Todos create/list via tunnel                       | OK                            |
 | From another machine on LAN, BE `:5000` without FE | Blocked / not routed publicly |
-| DB `:27017` from FE VM | Should fail (only BE allowed) |
-| DB `:27017` from BE VM | OK |
+| DB `:27017` from FE VM                             | Should fail (only BE allowed) |
+| DB `:27017` from BE VM                             | OK                            |
+
 
 ---
+
+
 
 ## Nginx ↔ backend contract (important)
 
 This app’s client uses relative paths like `/api/todos`.
 
-| Environment | How `/api` reaches Express |
-|-------------|----------------------------|
-| Local dev (`npm run dev`) | Vite proxy → `localhost:5000` |
-| Deployed | Nginx `location /api/` → `http://<BE_PRIVATE_IP>:5000` |
+
+| Environment               | How `/api` reaches Express                             |
+| ------------------------- | ------------------------------------------------------ |
+| Local dev (`npm run dev`) | Vite proxy → `localhost:5000`                          |
+| Deployed                  | Nginx `location /api/` → `http://<BE_PRIVATE_IP>:5000` |
+
 
 Do not open backend port 5000 to `0.0.0.0/0`.
 
 ---
+
+
 
 ## Quick command reference
 
@@ -491,6 +548,8 @@ curl http://<FE_HOST>/api/health               # via Nginx
 
 ---
 
+
+
 ## What to document for the assignment
 
 Include screenshots or notes of:
@@ -504,12 +563,17 @@ Include screenshots or notes of:
 
 ---
 
+
+
 ## Troubleshooting
 
-| Problem | Check |
-|---------|--------|
-| UI loads, API fails | Nginx `proxy_pass` IP/port; BE SG allows FE; `pm2 status` |
-| Backend cannot connect to Mongo | `MONGODB_URI` IP; Mongo `bindIp`; DB SG allows BE only |
-| `ECONNREFUSED` on FE → BE | Backend down, wrong private IP, or firewall |
-| Blank page after deploy | Wrong Nginx `root` (must be `client/dist`); run `npm run build` |
-| Works on private IP, not via tunnel | Tunnel target must be FE `:80`, not BE |
+
+| Problem                             | Check                                                           |
+| ----------------------------------- | --------------------------------------------------------------- |
+| UI loads, API fails                 | Nginx `proxy_pass` IP/port; BE SG allows FE; `pm2 status`       |
+| Backend cannot connect to Mongo     | `MONGODB_URI` IP; Mongo `bindIp`; DB SG allows BE only          |
+| `ECONNREFUSED` on FE → BE           | Backend down, wrong private IP, or firewall                     |
+| Blank page after deploy             | Wrong Nginx `root` (must be `client/dist`); run `npm run build` |
+| Works on private IP, not via tunnel | Tunnel target must be FE `:80`, not BE                          |
+
+
