@@ -13,8 +13,9 @@ For **manual AWS or local VM deployment** (public frontend, private backend + DB
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+
-- [MongoDB](https://www.mongodb.com/docs/manual/installation/) running locally  
-  (or a MongoDB Atlas connection string)
+- MongoDB — either:
+  - [Docker](https://www.docker.com/) (recommended for local): `docker compose up -d` from the project root
+  - or a local/Atlas MongoDB and set `MONGODB_URI` in `service/.env`
 
 ## Install
 
@@ -36,15 +37,24 @@ npm install
 Edit `service/.env` if needed:
 
 ```
-PORT=5000
+PORT=5001
 MONGODB_URI=mongodb://127.0.0.1:27017/todo-app
 ```
+
+> **Note:** Port `5001` is used locally because macOS AirPlay Receiver often occupies `5000` and returns `403 Forbidden`.
 
 For MongoDB Atlas, set `MONGODB_URI` to your cluster connection string.
 
 ## Run
 
-Start MongoDB (if local), then open **two terminals**:
+Start MongoDB, then open **two terminals**.
+
+**MongoDB (Docker):**
+
+```bash
+# from project root — start Docker Desktop first if needed
+docker compose up -d
+```
 
 **Terminal 1 — API service**
 
@@ -53,8 +63,8 @@ cd service
 npm run dev
 ```
 
-Service: http://localhost:5000  
-Health check: http://localhost:5000/api/health
+Service: http://localhost:5001  
+Health check: http://localhost:5001/api/health
 
 **Terminal 2 — React client**
 

@@ -8,6 +8,7 @@ router.get("/", async (_req, res) => {
     const todos = await Todo.find().sort({ createdAt: -1 });
     res.json(todos);
   } catch (error) {
+    console.error("GET /api/todos failed:", error.message);
     res.status(500).json({ error: "Failed to fetch todos" });
   }
 });
@@ -22,6 +23,7 @@ router.post("/", async (req, res) => {
     const todo = await Todo.create({ title });
     res.status(201).json(todo);
   } catch (error) {
+    console.error("POST /api/todos failed:", error.message);
     res.status(500).json({ error: "Failed to create todo" });
   }
 });
@@ -51,6 +53,7 @@ router.patch("/:id", async (req, res) => {
 
     res.json(todo);
   } catch (error) {
+    console.error("PATCH /api/todos failed:", error.message);
     res.status(500).json({ error: "Failed to update todo" });
   }
 });
@@ -63,6 +66,7 @@ router.delete("/:id", async (req, res) => {
     }
     res.status(204).send();
   } catch (error) {
+    console.error("DELETE /api/todos failed:", error.message);
     res.status(500).json({ error: "Failed to delete todo" });
   }
 });

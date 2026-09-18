@@ -518,11 +518,11 @@ This app’s client uses relative paths like `/api/todos`.
 
 | Environment               | How `/api` reaches Express                             |
 | ------------------------- | ------------------------------------------------------ |
-| Local dev (`npm run dev`) | Vite proxy → `localhost:5000`                          |
+| Local dev (`npm run dev`) | Vite proxy → `localhost:5001` (avoids macOS AirPlay on 5000) |
 | Deployed                  | Nginx `location /api/` → `http://<BE_PRIVATE_IP>:5000` |
 
 
-Do not open backend port 5000 to `0.0.0.0/0`.
+Do not open backend port 5000 to `0.0.0.0/0`. On macOS local dev, use `5001` — AirPlay Receiver often binds `5000` and returns `403`.
 
 ---
 
