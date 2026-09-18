@@ -116,30 +116,231 @@ No app `.env` on the DB host. Configure MongoDB bind address and firewall instea
 
 
 
-## Shared app setup (on each host that needs the code)
+## Software installation (client, server, MongoDB)
 
-Install Node.js 18+ on **frontend** and **backend** hosts.
+Do this on each host after SSH. Use **Ubuntu 22.04+**. Private hosts need a NAT Gateway (AWS) or extra NAT NIC (local VMs) so `apt`/`curl` can reach the internet.
+
+### 0. Get the project onto FE and BE hosts
 
 ```bash
-# On FE and BE hosts — clone or copy this project, then:
-# Backend host
-cd service
-npm install
-cp .env.example .env
-# edit .env — set MONGODB_URI to DB private IP
+# Option A — git (needs outbound HTTPS or SSH to GitHub)
+sudo apt update && sudo apt install -y git
+git clone <YOUR_REPO_URL> d-three-tier
+cd d-three-tier
 
-# Frontend host
-cd client
-npm install
-npm run build
-# output is client/dist — Nginx will serve this
+# Option B — copy from your laptop
+# scp -i key.pem -r ./d-three-tier ubuntu@<HOST>:/home/ubuntu/
 ```
 
-Install PM2 on the **backend** host:
+The **database host does not need** this repo — only MongoDB.
+
+---
+
+### 1. Install Node.js + npm (frontend + backend hosts)
+
+Install **Node.js 20 LTS** (includes `npm`) on both the **client** and **server** machines.
+
+```bash
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg
+
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+node -v   # v20.x
+npm -v
+```
+
+**Alternative (nvm):**
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.bashrc
+nvm install 20
+nvm use 20
+node -v && npm -v
+```
+
+---
+
+### 2. Install MongoDB (database host only)
+
+Install on the **DB** machine. Then bind to the private IP so the backend can connect (not only `127.0.0.1`).
+
+**Ubuntu 22.04 (MongoDB 7.0):**
+
+```bash
+sudo apt update
+sudo apt install -y curl gnupg
+
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc \
+  | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+  | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+sudo apt update
+sudo apt install -y mongodb-org
+
+sudo systemctl enable mongod
+sudo systemctl start mongod
+sudo systemctl status mongod
+```
+
+**Allow remote connections from the backend (required):**
+
+```bash
+# Find this host's private IP, e.g. 10.0.3.10 or 192.168.56.30
+ip -4 addr show
+
+# Edit config
+sudo nano /etc/mongod.conf
+```
+
+Set:
+
+```yaml
+net:
+  port: 27017
+  bindIp: 127.0.0.1,<DB_PRIVATE_IP>
+```
+
+Example: `bindIp: 127.0.0.1,10.0.3.10`
+
+```bash
+sudo systemctl restart mongod
+
+# Must show the private IP (or 0.0.0.0), not only 127.0.0.1
+sudo ss -tlnp | grep 27017
+
+# Local smoke test
+mongosh --eval 'db.runCommand({ ping: 1 })'
+```
+
+If `ss` only shows `127.0.0.1:27017`, the backend **cannot** connect and you will see `ECONNREFUSED` from other hosts — even if the security group allows port 27017.
+
+---
+
+### 3. Install and run the backend / server (`service/`)
+
+On the **backend** host (Node.js already installed):
+
+```bash
+cd ~/d-three-tier/service   # or your clone path
+npm install
+
+cp .env.example .env
+nano .env
+```
+
+`service/.env` on a deployed private network:
+
+```bash
+PORT=5000
+MONGODB_URI=mongodb://<DB_PRIVATE_IP>:27017/todo-app
+```
+
+Examples:
+
+```bash
+MONGODB_URI=mongodb://10.0.3.10:27017/todo-app
+MONGODB_URI=mongodb://192.168.56.30:27017/todo-app
+```
+
+Install PM2 and start the API:
 
 ```bash
 sudo npm install -g pm2
+
+pm2 start src/index.js --name todo-api
+pm2 save
+pm2 startup
+# run the command that PM2 prints (enables start on reboot)
+
+pm2 status
+pm2 logs todo-api --lines 50
+
+curl http://127.0.0.1:5000/api/health
+# expect: {"status":"ok"}
 ```
+
+From the **frontend** host, confirm private access:
+
+```bash
+curl http://<BE_PRIVATE_IP>:5000/api/health
+```
+
+---
+
+### 4. Install and run the client / frontend (`client/` + Nginx)
+
+On the **frontend** host (Node.js already installed):
+
+```bash
+cd ~/d-three-tier/client
+npm install
+npm run build
+# static files land in client/dist
+```
+
+Install Nginx:
+
+```bash
+sudo apt update && sudo apt install -y nginx
+```
+
+Configure Nginx (adjust path/IP as needed):
+
+```bash
+sudo nano /etc/nginx/sites-available/todo
+```
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    root /home/ubuntu/d-three-tier/client/dist;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://<BE_PRIVATE_IP>:5000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+Enable and start:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/todo /etc/nginx/sites-enabled/todo
+sudo rm -f /etc/nginx/sites-enabled/default
+
+sudo nginx -t
+sudo systemctl enable nginx
+sudo systemctl restart nginx
+
+curl -I http://127.0.0.1/
+curl http://127.0.0.1/api/health
+```
+
+---
+
+### Install checklist by host
+
+
+| Host | Install |
+|------|---------|
+| **Database** | MongoDB only → bind private IP → SG/firewall allows BE → `27017` |
+| **Backend** | Node.js + npm → `service/` `npm install` → `.env` → PM2 |
+| **Frontend** | Node.js + npm → `client/` `npm install` + `npm run build` → Nginx + `/api` proxy |
 
 ---
 
@@ -199,51 +400,44 @@ Outbound: allow all (default) so instances can use NAT for packages.
 | Database | Private `10.0.3.0/24` | **No**    | `sg-database` |
 
 
-Use Amazon Linux 2023 or Ubuntu. Note private IPs after launch (e.g. BE `10.0.2.20`, DB `10.0.3.10`).
+Use **Ubuntu 22.04**. Note private IPs after launch (e.g. BE `10.0.2.20`, DB `10.0.3.10`).
 
 SSH to private hosts via the frontend (bastion):
 
 ```bash
 # From your laptop → frontend
-ssh -i key.pem ec2-user@<FRONTEND_PUBLIC_IP>
+ssh -i key.pem ubuntu@<FRONTEND_PUBLIC_IP>
 
 # From frontend → backend / db
-ssh -i key.pem ec2-user@10.0.2.20
-ssh -i key.pem ec2-user@10.0.3.10
+ssh -i key.pem ubuntu@10.0.2.20
+ssh -i key.pem ubuntu@10.0.3.10
 ```
 
 (Copy your key to the frontend host securely, or use SSH agent forwarding.)
 
 ### A4. Database host
 
+Follow **§2. Install MongoDB** above. Use this host’s private IP in `bindIp` (e.g. `127.0.0.1,10.0.3.10`).
+
 ```bash
-# Ubuntu example
-sudo apt update
-sudo apt install -y mongodb   # or follow MongoDB official install docs
-
-# Bind to private interface (edit mongod.conf)
-#   net:
-#     bindIp: 127.0.0.1,<DB_PRIVATE_IP>
-#     port: 27017
-
-sudo systemctl enable mongod
-sudo systemctl restart mongod
-
-# Verify from DB host
-mongosh --host 127.0.0.1
+sudo systemctl status mongod
+sudo ss -tlnp | grep 27017
+mongosh --eval 'db.runCommand({ ping: 1 })'
 ```
 
 From the **backend** host, test:
 
 ```bash
-mongosh --host 10.0.3.10
-# or
 nc -vz 10.0.3.10 27017
+# optional, if mongosh is installed on BE:
+# mongosh --host 10.0.3.10 --eval 'db.runCommand({ ping: 1 })'
 ```
 
 
 
 ### A5. Backend host (PM2)
+
+Follow **§1. Install Node.js** and **§3. Install and run the backend** above.
 
 ```bash
 cd /path/to/d-three-tier/service
@@ -281,6 +475,8 @@ Confirm from the **public internet** that port 5000 is **not** reachable on the 
 
 ### A6. Frontend host (Nginx)
 
+Follow **§1. Install Node.js** and **§4. Install and run the client** above.
+
 Build the client on the FE host (or build elsewhere and copy `dist/`):
 
 ```bash
@@ -292,11 +488,10 @@ npm run build
 Install Nginx and point it at `dist`, proxying API to the private backend:
 
 ```bash
-sudo apt update && sudo apt install -y nginx   # Ubuntu
-# or: sudo yum install -y nginx                 # Amazon Linux
+sudo apt update && sudo apt install -y nginx
 ```
 
-Example site config (`/etc/nginx/sites-available/todo` or conf.d):
+Example site config (`/etc/nginx/sites-available/todo`):
 
 ```nginx
 server {
@@ -402,7 +597,7 @@ sudo ufw enable
 
 ### B3. Database VM
 
-Same as AWS: install MongoDB, bind to `127.0.0.1,192.168.56.30`, restart `mongod`.
+Follow **§2. Install MongoDB**. Set `bindIp: 127.0.0.1,192.168.56.30`, then restart `mongod`.
 
 Test from backend VM:
 
@@ -413,6 +608,8 @@ nc -vz 192.168.56.30 27017
 
 
 ### B4. Backend VM
+
+Follow **§1** and **§3**. Then:
 
 ```bash
 cd service
@@ -442,6 +639,8 @@ curl http://192.168.56.20:5000/api/health
 
 
 ### B5. Frontend VM + Nginx
+
+Follow **§1** and **§4**. Then:
 
 ```bash
 cd client
@@ -516,10 +715,10 @@ Or create a named tunnel in the Cloudflare Zero Trust dashboard pointing to `htt
 This app’s client uses relative paths like `/api/todos`.
 
 
-| Environment               | How `/api` reaches Express                             |
-| ------------------------- | ------------------------------------------------------ |
+| Environment               | How `/api` reaches Express                                   |
+| ------------------------- | ------------------------------------------------------------ |
 | Local dev (`npm run dev`) | Vite proxy → `localhost:5001` (avoids macOS AirPlay on 5000) |
-| Deployed                  | Nginx `location /api/` → `http://<BE_PRIVATE_IP>:5000` |
+| Deployed                  | Nginx `location /api/` → `http://<BE_PRIVATE_IP>:5000`       |
 
 
 Do not open backend port 5000 to `0.0.0.0/0`. On macOS local dev, use `5001` — AirPlay Receiver often binds `5000` and returns `403`.
