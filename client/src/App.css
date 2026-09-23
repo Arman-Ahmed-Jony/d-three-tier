@@ -16,6 +16,13 @@ h1 {
   color: #666;
 }
 
+.add-form input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
 .add-form {
   display: flex;
   gap: 0.5rem;
