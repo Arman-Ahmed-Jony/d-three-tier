@@ -50,7 +50,7 @@ router.patch("/:id", async (req, res) => {
     if (!todo) {
       return res.status(404).json({ error: "Todo not found" });
     }
-
+    console.log("PATCH /api/todos success:", todo);
     res.json(todo);
   } catch (error) {
     console.error("PATCH /api/todos failed:", error.message);
