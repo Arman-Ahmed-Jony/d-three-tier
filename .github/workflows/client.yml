@@ -1,6 +1,7 @@
 name: Client CI
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "client/**"
@@ -35,7 +36,16 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Test build output
+      - name: Test
         run: |
           test -s dist/index.html
           test -d dist/assets
+          grep -q 'id="root"' dist/index.html
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: todo-client-build
+          path: client/dist
+          if-no-files-found: error
+          retention-days: 14
