@@ -5,6 +5,12 @@ node_exporter --version
 
 
 
+sudo nano /etc/systemd/system
+system/            system-generators/ system.conf
+ubuntu@ip-10-0-0-241:~$ sudo nano /etc/systemd/system/node_exporter.service
+ubuntu@ip-10-0-0-241:~$ sudo useradd --no-create-home --shell /bin/false node_exporter
+
+
 
 service 1
 
@@ -40,3 +46,9 @@ ExecStart=/usr/local/bin/node_exporter
 
 [Install]
 WantedBy=multi-user.target
+
+
+
+
+this node exporter runes at 9100 port
+and we will see the metrix of the machine at http://<ip>:9100/metrics
