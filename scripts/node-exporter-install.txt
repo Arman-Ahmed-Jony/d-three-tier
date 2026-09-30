@@ -1,0 +1,42 @@
+wget https://github.com/prometheus/node_exporter/releases/download/v1.12.1/node_exporter-1.12.1.linux-amd64.tar.gz && \
+tar -xvf node_exporter-1.12.1.linux-amd64.tar.gz && \
+sudo cp node_exporter-1.12.1.linux-amd64/node_exporter /usr/local/bin/ && \
+node_exporter --version
+
+
+
+
+service 1
+
+[Unit]
+Description=Prometheus Node Exporter
+Documentation=https://github.com/prometheus/node_exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter --web.listen-address=0.0.0.0:9100
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+
+service 2 (alternative)
+
+[Unit]
+Description=Node exporter
+After=network.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
