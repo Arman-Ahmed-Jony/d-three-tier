@@ -330,3 +330,6 @@ Why I used `git commit --amend`
 
 git commit --amend allows the most recent commit to be modified. In this case, it lets me replace the poor commit message with a meaningful description before the history is reviewed.
 
+![screenshot 4](assets/scr4a.png)
+![screenshot 4](assets/sc4b.png)
+![screenshot 4](assets/sc4c.png)
