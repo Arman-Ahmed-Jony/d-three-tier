@@ -275,3 +275,58 @@ For a private feature branch, I would generally prefer rebase because it keeps t
 For a shared branch where rewriting history could affect other developers, I would prefer merge.
 
 ![screenshot 3](assets/sc3.png "screenshot 3")
+
+
+# Task 4: The Embarrassing Message — Correcting a Commit
+Objective
+
+A commit contains the message:
+```bash
+asdf fix
+```
+The message needs to be corrected before the history is shared.
+
+Solution
+
+I first checked the latest commit:
+
+```bash
+git log --oneline -5
+```
+Example:
+```bash
+a82f19c asdf fix
+7d4b821 Add dashboard layout
+3f8c122 Initial project setup
+```
+
+Since the incorrect message was the latest commit, I corrected it using:
+
+```bash
+git commit --amend -m "Fix dashboard data loading"
+```
+I verified the result:
+```bash
+git log --oneline -5
+```
+
+Now the history shows:
+```bash
+b31c9e2 Fix dashboard data loading
+7d4b821 Add dashboard layout
+3f8c122 Initial project setup
+```
+The commit content remains the same; only the commit metadata/message was changed.
+
+If the commit had already been pushed
+
+If the commit had already been pushed to a remote feature branch, I would need to update the remote history:
+```bash
+git push --force-with-lease origin feature/new-dashboard
+```
+I would avoid rewriting history on main or another shared branch.
+
+Why I used `git commit --amend`
+
+git commit --amend allows the most recent commit to be modified. In this case, it lets me replace the poor commit message with a meaningful description before the history is reviewed.
+
