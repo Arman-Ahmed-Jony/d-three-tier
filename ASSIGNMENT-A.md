@@ -274,4 +274,4 @@ For a private feature branch, I would generally prefer rebase because it keeps t
 
 For a shared branch where rewriting history could affect other developers, I would prefer merge.
 
-Proof: Screenshots of git log --oneline --graph --all showing the difference between the rebase and merge histories.
+![screenshot 3](assets/sc3.png "screenshot 3")
