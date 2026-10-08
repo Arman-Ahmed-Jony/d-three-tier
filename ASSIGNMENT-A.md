@@ -342,3 +342,20 @@ For havving our own ci pipeline we are using an ec2 and use it as runner
 ![screenshot 5](assets/sc5b.png)
 
 # Task 6: The Blind Server
+Here we need full observability
+
+```mermaid
+flowchart TB
+    S["Ubuntu Server / EC2"]
+
+    S --> N["Node Exporter"]
+    S --> A["Grafana Alloy"]
+
+    N -->|System Metrics| A
+    A -->|Metrics| P["Prometheus :9090"]
+
+    A -->|Logs| L["Loki :3100"]
+
+    P --> G["Grafana :3000"]
+    L --> G
+```
