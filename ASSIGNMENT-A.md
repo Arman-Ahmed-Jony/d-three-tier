@@ -333,3 +333,12 @@ git commit --amend allows the most recent commit to be modified. In this case, i
 ![screenshot 4](assets/scr4a.png)
 ![screenshot 4](assets/sc4b.png)
 ![screenshot 4](assets/sc4c.png)
+
+
+# Task 5: Our Own CI
+For havving our own ci pipeline we are using an ec2 and use it as runner
+
+![screenshot 5](assets/sc5a.png)
+![screenshot 5](assets/sc5b.png)
+
+# Task 6: The Blind Server
