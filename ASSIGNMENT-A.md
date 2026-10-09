@@ -359,3 +359,51 @@ flowchart TB
     P --> G["Grafana :3000"]
     L --> G
 ```
+
+
+but here we won't install node exporter. as alow gives us opportunity to get the matrix
+
+```bash
+nano install-observability.sh
+```
+
+a single script file is given here [all install script](scripts/install-observability.sh)
+
+```bash
+chmod +x install-observability.sh
+sudo bash ./install-observability.sh
+```
+#### verify
+```bash
+sudo systemctl status prometheus loki alloy grafana-server --no-pager
+```
+#### verify grafana locall
+```bash
+curl -I http://127.0.0.1:3000
+```
+
+#### If a service fails, inspect its logs individually
+```bash
+sudo journalctl -u grafana-server -n 50 --no-pager
+sudo journalctl -u prometheus -n 50 --no-pager
+sudo journalctl -u loki -n 50 --no-pager
+sudo journalctl -u alloy -n 50 --no-pager
+```
+
+#### Open Grafana
+
+Then in our browser, we may visit:
+
+http://EC2_PUBLIC_IP:3000
+
+## Which ports should be open?
+
+| Port  | Service    | Inbound Rule         |
+| ----- | ---------- | -------------------- |
+| 22    | SSH        | Your IP only         |
+| 3000  | Grafana    | Your IP only         |
+| 9090  | Prometheus | Do not open publicly |
+| 3100  | Loki       | Do not open publicly |
+| 12345 | Alloy UI   | Do not open publicly |
+
+
