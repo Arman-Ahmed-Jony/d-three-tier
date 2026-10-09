@@ -8,7 +8,7 @@ Solution
 
 First, I cloned the repository and checked the available branches:
 
-```bash 
+```bash
 git clone [https://github.com/cloudnest/cloudnest-app.git](https://github.com/cloudnest/cloudnest-app.git)
 cd cloudnest-app
 
@@ -17,8 +17,8 @@ git status
 
 ```
 
-
 I made sure I was on the latest main branch:
+
 ```bash
 git checkout main
 git pull origin main
@@ -29,24 +29,31 @@ Then I created a separate feature branch:
 ```bash
 git checkout -b feature/new-dashboard
 ```
+
 I verified the branch:
+
 ```bash
 git branch
 ```
+
 Example output:
 
 - feature/new-dashboard
 main
 
 I then made my changes and committed them to the feature branch:
+
 ```bash
 git add .
 git commit -m "Add server health dashboard"
 ```
+
 Finally, I pushed the feature branch to GitHub:
+
 ```bash
 git push -u origin feature/new-dashboard
 ```
+
 Why I did this
 
 The main branch should contain stable code, while feature branches allow developers to work independently. This prevents unfinished or experimental changes from directly affecting the main application.
@@ -70,6 +77,7 @@ git checkout feature/new-dashboard
 I made some changes but they were not ready to commit.
 
 I checked the working tree:
+
 ```bash
 git status
 ```
@@ -99,6 +107,7 @@ git checkout bug/fix-login
 ```
 
 I fixed the urgent bug:
+
 ```bash
 git add .
 git commit -m "Fix login validation bug"
@@ -116,6 +125,7 @@ I checked the available stashes:
 ```bash
 git stash list
 ```
+
 Example:
 
 stash@{0}: On feature/new-dashboard: WIP: dashboard changes
@@ -201,7 +211,7 @@ Example:
 
 Because rebase rewrites commit history, if the branch had already been pushed, I would update the remote using:
 
-```bash 
+```bash
 git push --force-with-lease origin feature/new-dashboard
 ```
 
@@ -227,6 +237,7 @@ Then I returned to the feature branch:
 ```bash
 git checkout feature/new-dashboard-merge
 ```
+
 I merged the latest main into it:
 
 ```bash
@@ -245,6 +256,7 @@ Finally, I checked the history:
 ```bash
 git log --oneline --graph --all
 ```
+
 The history now preserves the separate development paths and includes a merge commit.
 
 Example:
@@ -276,14 +288,16 @@ For a shared branch where rewriting history could affect other developers, I wou
 
 ![screenshot 3](assets/sc3.png "screenshot 3")
 
-
 # Task 4: The Embarrassing Message — Correcting a Commit
+
 Objective
 
 A commit contains the message:
+
 ```bash
 asdf fix
 ```
+
 The message needs to be corrected before the history is shared.
 
 Solution
@@ -293,7 +307,9 @@ I first checked the latest commit:
 ```bash
 git log --oneline -5
 ```
+
 Example:
+
 ```bash
 a82f19c asdf fix
 7d4b821 Add dashboard layout
@@ -305,25 +321,31 @@ Since the incorrect message was the latest commit, I corrected it using:
 ```bash
 git commit --amend -m "Fix dashboard data loading"
 ```
+
 I verified the result:
+
 ```bash
 git log --oneline -5
 ```
 
 Now the history shows:
+
 ```bash
 b31c9e2 Fix dashboard data loading
 7d4b821 Add dashboard layout
 3f8c122 Initial project setup
 ```
+
 The commit content remains the same; only the commit metadata/message was changed.
 
 If the commit had already been pushed
 
 If the commit had already been pushed to a remote feature branch, I would need to update the remote history:
+
 ```bash
 git push --force-with-lease origin feature/new-dashboard
 ```
+
 I would avoid rewriting history on main or another shared branch.
 
 Why I used `git commit --amend`
@@ -334,14 +356,15 @@ git commit --amend allows the most recent commit to be modified. In this case, i
 ![screenshot 4](assets/sc4b.png)
 ![screenshot 4](assets/sc4c.png)
 
-
 # Task 5: Our Own CI
+
 For havving our own ci pipeline we are using an ec2 and use it as runner
 
 ![screenshot 5](assets/sc5a.png)
 ![screenshot 5](assets/sc5b.png)
 
 # Task 6: The Blind Server
+
 Here we need full observability
 
 ```mermaid
@@ -361,6 +384,7 @@ flowchart TB
 ```
 
 
+
 but here we won't install node exporter. as alow gives us opportunity to get the matrix
 
 ```bash
@@ -373,16 +397,21 @@ a single script file is given here [all install script](scripts/install-observab
 chmod +x install-observability.sh
 sudo bash ./install-observability.sh
 ```
+
 #### verify
+
 ```bash
 sudo systemctl status prometheus loki alloy grafana-server --no-pager
 ```
+
 #### verify grafana locall
+
 ```bash
 curl -I http://127.0.0.1:3000
 ```
 
 #### If a service fails, inspect its logs individually
+
 ```bash
 sudo journalctl -u grafana-server -n 50 --no-pager
 sudo journalctl -u prometheus -n 50 --no-pager
@@ -394,9 +423,10 @@ sudo journalctl -u alloy -n 50 --no-pager
 
 Then in our browser, we may visit:
 
-http://EC2_PUBLIC_IP:3000
+[http://EC2_PUBLIC_IP:3000](http://EC2_PUBLIC_IP:3000)
 
 ## Which ports should be open?
+
 
 | Port  | Service    | Inbound Rule         |
 | ----- | ---------- | -------------------- |
@@ -406,4 +436,34 @@ http://EC2_PUBLIC_IP:3000
 | 3100  | Loki       | Do not open publicly |
 | 12345 | Alloy UI   | Do not open publicly |
 
+
+# Task 7: The Dashboard
+
+#### what if pre defined dashboard used
+
+![screenshot 7](assets/sc7a.png)
+
+##### Import instructions
+
+Open Dashboards in the left sidebar.
+
+Click New → Import (the menu wording can vary by version).
+
+Enter dashboard ID `1860`.
+
+Click Load.
+
+Under the Prometheus datasource selection, choose Prometheus.
+
+Click Import.
+
+#### what if design manually
+##### Loki (for logs)
+View my logs in Grafana
+
+{job="system"}
+
+![screenshot 7b](assets/sc7b.png)
+
+##### Prometheus (for system metrics)
 
