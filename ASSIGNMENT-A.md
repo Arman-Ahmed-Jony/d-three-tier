@@ -468,3 +468,66 @@ View my logs in Grafana
 ##### Prometheus (for system metrics)
 
 ![screenshot 7c](assets/sc7c.png)
+
+# Grafana EC2 Monitoring — Quick Cheat Sheet
+
+A simple reference for my eight dashboard panels, their PromQL queries, and how to understand the results.
+
+---
+
+## 1. Metrics and queries
+
+| Metric | PromQL query | Unit |
+|---|---|---|
+| CPU usage | `100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])))` | % |
+| RAM usage | `100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)` | % |
+| Disk usage | `100 * (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs\|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs\|overlay"})` | % |
+| Incoming network | `rate(node_network_receive_bytes_total{device!~"lo\|veth.*\|docker.*"}[5m])` | Bytes/sec |
+| Outgoing network | `rate(node_network_transmit_bytes_total{device!~"lo\|veth.*\|docker.*"}[5m])` | Bytes/sec |
+| Uptime | `node_time_seconds - node_boot_time_seconds` | Seconds |
+| System load (1 min) | `node_load1` | Load average |
+| System load (5 min) | `node_load5` | Load average |
+| System load (15 min) | `node_load15` | Load average |
+| Disk used | `(node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"}) / 1024^3` | GB |
+| Available RAM | `node_memory_MemAvailable_bytes / 1024^3` | GB |
+
+> **Note:** The disk queries assume a single matching root filesystem. If your server has multiple matching series, filter by `device` to avoid duplicate results.
+
+---
+
+## 2. How to interpret the values
+
+| Metric | Healthy starting point | Warning sign |
+|---|---|---|
+| CPU usage | Low to moderate | Consistently above 80% |
+| RAM usage | Plenty of memory available | Consistently above 85–90% |
+| Disk usage | Below 75% | Above 85%; critical near 95% |
+| Network traffic | Depends on workload | Unexpected spikes or sustained saturation |
+| Uptime | Depends on maintenance | Unexpected resets or frequent reboots |
+| System load | Around or below CPU core count | Sustained load above core count |
+
+These are general starting thresholds, not universal rules. For example, high CPU can be normal during a deployment.
+
+---
+
+## 3. Understand the PromQL functions
+
+- **`rate(metric[5m])`** — calculates the average per-second increase of a counter over five minutes.
+- **`avg(...)`** — averages values across matching series.
+- **`100 * (...)`** — converts a fraction into a percentage.
+- **`node_memory_MemAvailable_bytes`** — estimates memory available for new applications without swapping.
+- **`node_boot_time_seconds`** — Unix timestamp when the system booted.
+- **`node_load1`, `node_load5`, `node_load15`** — system load averages over 1, 5, and 15 minutes.
+
+---
+
+## 4. Remember the architecture
+
+1. **Grafana Alloy**
+   - Collects system metrics
+2. **Prometheus**
+   - Stores metrics and evaluates PromQL
+3. **Grafana**
+   - Displays dashboards and graphs
+
+> **Troubleshooting tip:** If a panel displays *No data*, open Grafana Explore and test the metric name directly, such as `node_cpu_seconds_total`. Your Alloy exporter must expose the corresponding metric for the query to work.
