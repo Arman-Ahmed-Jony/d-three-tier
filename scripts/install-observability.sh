@@ -90,6 +90,10 @@ curl -fL \
 
 tar -xzf "$TMP_DIR/prometheus.tar.gz" -C "$TMP_DIR"
 
+id prometheus >/dev/null 2>&1 ||
+    useradd --system --no-create-home \
+      --shell /usr/sbin/nologin prometheus
+
 install -d -o prometheus -g prometheus -m 0750 \
     /etc/prometheus /var/lib/prometheus
 
