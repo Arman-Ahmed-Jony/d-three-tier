@@ -467,3 +467,4 @@ View my logs in Grafana
 
 ##### Prometheus (for system metrics)
 
+![screenshot 7c](assets/sc7c.png)
