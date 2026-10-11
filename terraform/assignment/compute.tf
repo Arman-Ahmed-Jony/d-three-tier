@@ -17,6 +17,12 @@ resource "aws_instance" "app" {
   subnet_id                   = aws_subnet.public[each.key].id
   vpc_security_group_ids      = [aws_security_group.app.id]
   associate_public_ip_address = true
+  # A stopped instance releases its public IP. Without this, the next
+  # apply sees associate_public_ip_address flip to false and replaces
+  # the instance instead of starting it.
+  lifecycle {
+    ignore_changes = [associate_public_ip_address]
+  }
   user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
     instance_label    = each.value.label
     availability_zone = each.value.az

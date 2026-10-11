@@ -1,5 +1,7 @@
 # Three-Tier Todo App
 
+Load-balancing lab (Option A, Terraform): [terraform/assignment/README.md](terraform/assignment/README.md).
+
 Simple todo app with three tiers:
 
 | Tier | Folder | Stack |
