@@ -1,7 +1,6 @@
 # High-Availability Web Service with Load Balancing
 
-**Name:** [Your Name]  
-**Student ID:** [Student ID]  
+I chose
 **Option:** A — AWS Application Load Balancer
 
 ShopFast serves customers through one Application Load Balancer and two EC2 instances in two Availability Zones. Terraform in this folder is the source of the design. The load balancer is the only public entry point. Each instance answers with its own name and Availability Zone, and exposes `GET /health`.
