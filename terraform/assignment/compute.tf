@@ -32,3 +32,8 @@ resource "aws_instance" "app" {
     Name = "${local.name}-${each.key}"
   }
 }
+
+resource "aws_ec2_instance_state" "instance_1" {
+  instance_id = aws_instance.app["instance_1"].id
+  state       = var.stop_instance_1 ? "stopped" : "running"
+}

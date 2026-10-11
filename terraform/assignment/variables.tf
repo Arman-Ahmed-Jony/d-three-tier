@@ -9,3 +9,9 @@ variable "instance_type" {
   type        = string
   default     = "t2.micro"
 }
+
+variable "stop_instance_1" {
+  description = "When true, stop the instance in us-east-2a so the load balancer fails over to us-east-2b."
+  type        = bool
+  default     = false
+}
